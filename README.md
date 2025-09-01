@@ -16,6 +16,8 @@ A real-time face detection system that processes video files and streams the res
 - 🎯 Face region drawing with confidence scores
 - 🚀 Start/Stop controls
 - 📊 Live face detection statistics
+- 📥 Automatic model file download (deploy.prototxt & caffemodel)
+- 🔄 Progress tracking for large file downloads
 
 ## Setup
 
@@ -36,11 +38,7 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
-3. Ensure model files are present:
-   - `deploy.prototxt`
-   - `res10_300x300_ssd_iter_140000.caffemodel`
-
-4. Start backend server:
+3. Start backend server (model files will be downloaded automatically if missing):
 ```bash
 python server.py
 ```

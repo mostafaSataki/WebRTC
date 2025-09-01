@@ -21,12 +21,16 @@ export default function VideoPlayer({ currentFrame, faceData, isProcessing }: Vi
   const imageRef = useRef<HTMLImageElement>(null)
   
   useEffect(() => {
-    if (currentFrame && canvasRef.current) {
+    // Only run on client side
+    if (typeof window !== 'undefined' && currentFrame && canvasRef.current) {
       drawFrameWithFaces()
     }
   }, [currentFrame, faceData])
 
   const drawFrameWithFaces = () => {
+    // Ensure we're on the client side
+    if (typeof window === 'undefined') return
+    
     const canvas = canvasRef.current
     const image = imageRef.current
     
@@ -67,7 +71,7 @@ export default function VideoPlayer({ currentFrame, faceData, isProcessing }: Vi
 
   return (
     <div className="space-y-4">
-      <div className="relative bg-black rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+      <div className="relative bg-black rounded-lg overflow-hidden" style={{ paddingBottom: '75%' }}>
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full object-contain"

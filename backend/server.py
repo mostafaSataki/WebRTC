@@ -10,6 +10,9 @@ import base64
 import threading
 import queue
 import time
+import os
+import urllib.request
+from pathlib import Path
 
 app = FastAPI()
 
@@ -26,14 +29,62 @@ current_video_path = None
 video_processor = None
 face_detector = None
 
+def show_progress(count, block_size, total_size):
+    """Progress callback for urllib.request.urlretrieve"""
+    percent = int(count * block_size * 100 / total_size)
+    print(f"\rProgress: {percent}% ({count * block_size}/{total_size} bytes)", end='', flush=True)
+
+def download_model_files():
+    """Download required model files if they don't exist"""
+    model_dir = Path(__file__).parent
+    prototxt_path = model_dir / "deploy.prototxt"
+    model_path = model_dir / "res10_300x300_ssd_iter_140000.caffemodel"
+    
+    # URLs for model files
+    prototxt_url = "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt"
+    model_url = "https://raw.githubusercontent.com/opencv/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000.caffemodel"
+    
+    try:
+        # Download prototxt file if not exists
+        if not prototxt_path.exists():
+            print("📥 Downloading deploy.prototxt...")
+            urllib.request.urlretrieve(prototxt_url, prototxt_path, show_progress)
+            print("\n✓ deploy.prototxt downloaded successfully")
+        else:
+            print("✓ deploy.prototxt already exists")
+        
+        # Download model file if not exists
+        if not model_path.exists():
+            print("📥 Downloading res10_300x300_ssd_iter_140000.caffemodel...")
+            print("⏳ This may take a few minutes (file size: ~10MB)...")
+            urllib.request.urlretrieve(model_url, model_path, show_progress)
+            print("\n✓ res10_300x300_ssd_iter_140000.caffemodel downloaded successfully")
+        else:
+            print("✓ res10_300x300_ssd_iter_140000.caffemodel already exists")
+            
+        return str(prototxt_path), str(model_path)
+        
+    except Exception as e:
+        print(f"\n❌ Error downloading model files: {e}")
+        print("📋 Please download the files manually:")
+        print(f"1. {prototxt_url}")
+        print(f"2. {model_url}")
+        raise
+
 class FaceDetector:
     def __init__(self):
-        # Paths to model files
-        self.prototxt_path = "deploy.prototxt"
-        self.model_path = "res10_300x300_ssd_iter_140000.caffemodel"
+        # Download model files if they don't exist
+        print("Checking for required model files...")
+        self.prototxt_path, self.model_path = download_model_files()
         
         # Load the pre-trained model
-        self.net = cv2.dnn.readNetFromCaffe(self.prototxt_path, self.model_path)
+        print("Loading face detection model...")
+        try:
+            self.net = cv2.dnn.readNetFromCaffe(self.prototxt_path, self.model_path)
+            print("✓ Face detection model loaded successfully")
+        except Exception as e:
+            print(f"Error loading face detection model: {e}")
+            raise
     
     def detect_faces(self, frame):
         """Detect faces in a frame and return face regions"""
@@ -79,7 +130,11 @@ class VideoProcessor:
         self.cap = None
         self.is_running = False
         self.frame_queue = queue.Queue(maxsize=10)
-        self.face_detector = FaceDetector()
+        # Use global face detector to avoid reloading models
+        global face_detector
+        if face_detector is None:
+            face_detector = FaceDetector()
+        self.face_detector = face_detector
         
     async def start_processing(self):
         """Start video processing in a separate thread"""
@@ -194,4 +249,19 @@ async def root():
     return {"message": "WebRTC Face Detection Server"}
 
 if __name__ == "__main__":
+    print("=" * 60)
+    print("🚀 Starting WebRTC Face Detection Server")
+    print("=" * 60)
+    
+    # Initialize face detector on startup to download models if needed
+    try:
+        face_detector = FaceDetector()
+        print("✓ Server initialization complete")
+        print("📡 Server will be available at: http://localhost:8000")
+        print("🌐 WebSocket endpoint: ws://localhost:8000/ws")
+        print("=" * 60)
+    except Exception as e:
+        print(f"❌ Failed to initialize server: {e}")
+        exit(1)
+    
     uvicorn.run(app, host="0.0.0.0", port=8000)

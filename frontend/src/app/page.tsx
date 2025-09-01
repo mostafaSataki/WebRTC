@@ -1,8 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import VideoPlayer from '@/components/VideoPlayer'
+import dynamic from 'next/dynamic'
 import FaceDataDisplay from '@/components/FaceDataDisplay'
+import ErrorBoundary from '@/components/ErrorBoundary'
+
+// Dynamically import VideoPlayer to avoid SSR issues
+const VideoPlayer = dynamic(() => import('@/components/VideoPlayer'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 rounded-lg h-64 flex items-center justify-center">Loading video player...</div>
+})
 
 export default function Home() {
   const [videoPath, setVideoPath] = useState('')
@@ -134,23 +141,27 @@ export default function Home() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Video Stream</h2>
-            <VideoPlayer 
-              currentFrame={currentFrame}
-              faceData={faceData}
-              isProcessing={isProcessing}
-            />
+            <ErrorBoundary>
+              <VideoPlayer 
+                currentFrame={currentFrame}
+                faceData={faceData}
+                isProcessing={isProcessing}
+              />
+            </ErrorBoundary>
           </div>
 
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Face Detection Data</h2>
-            <FaceDataDisplay 
-              faceData={faceData}
-              onFaceDataUpdate={setFaceData}
-              isProcessing={isProcessing}
-            />
+            <ErrorBoundary>
+              <FaceDataDisplay 
+                faceData={faceData}
+                onFaceDataUpdate={setFaceData}
+                isProcessing={isProcessing}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       </div>

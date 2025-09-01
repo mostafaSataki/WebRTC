@@ -1,0 +1,1 @@
+"D:\Program Files\KMPlayer 64X\LAVFilters64\ffmpeg.exe" -re -stream_loop -1 -i "mehdi.mp4" -c:v libx264 -preset ultrafast -tune zerolatency -x264-params "keyint=30:min-keyint=30:repeat-headers=1:annexb=1" -bsf:v h264_mp4toannexb -f mpegts udp://127.0.0.1:1234
